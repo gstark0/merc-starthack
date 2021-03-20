@@ -1,5 +1,7 @@
 from django.shortcuts import render
 from .serializers import InputSerializer
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 # ML STUFF HERE
 import base64
@@ -15,13 +17,17 @@ model = tensorflow.keras.models.load_model('keras_model.h5')
 def prepare_image(image, target):
     # if the image mode is not RGB, convert it
     data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
-    opened_image = Image.open(image)
 
-    if image.mode != "RGB":
-        image = image.convert("RGB")
+    filename = 'image_to_process.jpg'  # I assume you have a way of picking unique filenames
+    with open(filename, 'wb') as f:
+        f.write(base64.b64decode(image))
 
-    image_array = np.asarray(image) 
+    opened_image = Image.open(filename)
+    opened_image = ImageOps.fit(opened_image, target, Image.ANTIALIAS)
+
+    image_array = np.asarray(opened_image) 
     normalized_image_array = (image_array.astype(np.float32) / 127.0) - 1
+
     data[0] = normalized_image_array
 
     # return the processed image
@@ -30,10 +36,10 @@ def prepare_image(image, target):
 
 
 # Create your views here.
-@api_view(['GET'])
+@api_view(['POST'])
 def facial_recognition(request):
     """
-    List all code snippets, or create a new snippet.
+    Perform Facial recognition
     """
     welcome_string = ""
     sound_url = ""
@@ -50,11 +56,12 @@ def facial_recognition(request):
         image_url = ""
     """
 
-    if request.method == 'GET':
+    if request.method == 'POST':
+    
         serializer = InputSerializer(request.data)
-        image = serializer.image.decode('base64')
 
-        prepare_image(image, (224, 224))
+        image = serializer.data.get("image")
+        image = prepare_image(image, (224, 224))
 
         preds = model.predict(image)
         # After prediction
