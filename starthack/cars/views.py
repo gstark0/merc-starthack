@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .serializers import InputSerializer
+from .serializers import InputSerializer, OtherInputSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -13,6 +13,9 @@ import numpy as np
 import io
 
 model = tensorflow.keras.models.load_model('keras_model.h5')
+
+# Disable scientific notation for clarity
+np.set_printoptions(suppress=True)
 
 def prepare_image(image, target):
     # if the image mode is not RGB, convert it
@@ -41,6 +44,9 @@ def facial_recognition(request):
     """
     Perform Facial recognition
     """
+
+    people = ["Jim Carrey", "Sunveer", "Elon Musk", "Obama"]
+
     welcome_string = ""
     sound_url = ""
     image_url = ""
@@ -57,7 +63,7 @@ def facial_recognition(request):
     """
 
     if request.method == 'POST':
-    
+        print(request.data)
         serializer = InputSerializer(request.data)
 
         image = serializer.data.get("image")
@@ -78,8 +84,34 @@ def facial_recognition(request):
 
         #return JsonResponse(data)
 
-        return Response(preds)
+        #return Response(preds[0][1])
+        print(preds[0])
+        
+        return Response({"name": people[preds[0].tolist().index(max(preds[0]))]})
 
 
 
     #return Response({"string": ""})
+
+@api_view(['GET'])
+def sales(request):
+    if request.method == 'POST':
+        serializer = OtherInputSerializer(request.data)
+        data = serializer.data.type_of_car
+        if data == "neutral":
+            return Response("neutral_sound_here")
+        elif data == "calm": 
+            return Response("calm_sound_here")
+
+@api_view(['GET'])
+def showroom(request):
+    if request.method == 'POST':
+        serializer = OtherInputSerializer(request.data)
+        data = serializer.data.type_of_car
+        if data == "neutral":
+            return Response("neutral_sound_here")
+        elif data == "calm": 
+            return Response("calm_sound_here")
+
+
+
